@@ -82,9 +82,26 @@ def core(all_agents: List[Agent], cutter: Agent, residue: Allocation, excluded: 
 		new_allocation.set_piece(0, piece)
 		competitors.remove(agent)
 
-	# if every agent in S has a different favorite piece then
-	# everyone gets their
+	# TODO: if every agent in S has a different favorite piece then
+	# TODO: everyone gets their favorite piece and the algorithm terminates
 
+	# for very agent i∈S do:
+	for agent in competitors:
+		# if 1) i (agent) has no competition for her second favorite piece p
+		#    or
+		#    2) i (agent) has exactly one competitor j∈S for p,
+		#       j also considers p as her second favorite,
+		#       and i,j each have exactly one competitor for their favorite piece
+		if 1 in all_agents:
+			# i (agent) makes a 2-mark
+			pass
+		else:
+			# i (agent) makes a 3-mark
+			pass
+
+	# TODO: allocate the prices according to a rightmost rule:
+	# if an agent ahs the rightmost mark in two pieces then
+		# out of the two partial pieces, considered until the second rightmost mark, she is allocated the one she pereferces
 
 	raise NotImplementedError("shit")
 
