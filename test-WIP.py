@@ -3,6 +3,7 @@ from allocations import *
 from typing import *
 from numpy import argmax
 from cut_and_choose import asymmetric_protocol
+from normal_agent import *
 
 t = PiecewiseConstantAgent([1, 1, 1, 1], "t")
 
@@ -14,27 +15,32 @@ d = PiecewiseConstantAgent([1, 2, 3, 4], "d")
 alloc = Allocation([a, b, c, d])
 
 
-def slice_to_4(start: float, end: float, slicer: Agent) -> List[float]:
+def slice_to_4_continuous(start: float, end: float, slicer: Agent) -> List[Tuple[float, float]]:
     """
-    Slice a piece to 4 equals pieces in the eyes of the slicer
-    :param start: the start of the piece to slice to 4 equal parts.
-    :param end: the end of the piece to slice to 4 equal parts.
-    :param slicer: the agent who slice to 4 equal pieces.
-    :return: a list of the points to cut, including the start and end of the piece.
+    Slice partitions to 4 equals partitions in the eyes of the slicer
+    :param start: the start of the piece we want to cut.
+    :param end: the end of the piece we want to cut.
+    :param slicer: the agent who slice to 4 equal partitions.
+    :return: a list of 4 equals slices in the eye of the cutter
 
     >>> a = PiecewiseConstantAgent([1, 1, 1, 1])
-    >>> slice_to_4(0, 4, a)
-    [0.0, 1.0, 2.0, 3.0, 4.0]
-    >>> slice_to_4(0, 2, a)
-    [0.0, 0.5, 1.0, 1.5, 2.0]
+    >>> s = slice_to_4_continuous(0, 4, a)
+    >>> s
+    [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 4.0)]
+    >>> len(s)
+    4
+    >>> slice_to_4_continuous(0, 2, a)
+    [(0.0, 0.5), (0.5, 1.0), (1.0, 1.5), (1.5, 2.0)]
     """
-    # set the start to be 0 if it's negative
-    start = max(start, 0.0)
-
     # make sure they are floats
     start = float(start)
     end = float(end)
 
+    # set start and end such as: 0.0 <= start, end <= 1.0
+    start = max(0.0, min(start, end))
+    end = max(0.0, min(end, 1.0))
+
+    # the value of a piece
     quarter_val = slicer.eval(start, end) / 4
 
     # ask the slicer to mark four equal pieces
@@ -42,10 +48,101 @@ def slice_to_4(start: float, end: float, slicer: Agent) -> List[float]:
     third = slicer.mark(second, quarter_val)
     fourth = slicer.mark(third, quarter_val)
 
-    return [start, second, third, fourth, end]
+    # return the 4 equal pieces
+    return [(start, second), (second, third), (third, fourth), (fourth, end)]
 
 
-print(slice_to_4(0, 2, t))
+def slice_to_4(partitions: List[Tuple[float, float]], slicer: Agent) -> List[List[Tuple[float, float]]]:
+    """
+    Slice partitions to 4 equals partitions in the eyes of the slicer
+    :param partitions: a list of k slices [(start1, end1), (start2, end2), ...]
+    :param slicer: the agent who slice to 4 equal partitions.
+    :return: a list of 4 equals partitions
+    [[(start1_1, end1_1), (start1_2, end1_2), ...], [(start2_1, end2_1), ..], [(start3_1, end3_1), ...],
+                                                                                            [(start4_1, 4_end1), ...]]
+
+    >>> a = PiecewiseConstantAgent([1, 1, 1, 1])
+    >>> s = slice_to_4([(0, 4)], a)
+    >>> s
+    [[(0.0, 1.0)], [(1.0, 2.0)], [(2.0, 3.0)], [(3.0, 4.0)]]
+    >>> len(s)
+    4
+    >>> slice_to_4([(0, 2)], a)
+    [[(0.0, 0.5)], [(0.5, 1.0)], [(1.0, 1.5)], [(1.5, 2.0)]]
+    """
+    # make sure everything is float
+    partitions = [(float(s), float(e)) for s, e in partitions]
+
+    # get the value of each final partition
+    quarter_val = sum(slicer.eval(*partition) for partition in partitions) / 4
+
+    # the final partitions we will return
+    final_slicing = []
+    # the index of the partition we finished with at the last partition
+    start_index = 0
+    # the starting place of the star_index partition
+    start_place = 0.0
+    # for every final partition
+    for time in range(4):
+        # the current slices
+        curr_slice = []
+        # the value of the current partition
+        curr_val = 0
+
+        # for every partition in the given partitions list,
+        # starting from the last partition that the prev final partition left us
+        for i in range(start_index, len(partitions)):
+            # the current partition we're looking at
+            partition = partitions[i]
+            # if we are at the first partition we're looking at
+            if i == start_index:
+                # fix the starting place
+                partition = (start_place, partition[1])
+
+            # get the current partition value
+            curr_part_value = slicer.eval(*partition)
+
+            # if with it the current main partition's value is the quarter value
+            if curr_val + curr_part_value == quarter_val:
+                # add this partition to the main one
+                curr_slice.append(partition)
+
+                # if it wasn't the last partition in the partitions list
+                if i+1 < len(partitions):
+                    # set the next starting index to be the next partition
+                    start_index = i+1
+                    # set the starting place to be
+                    start_place = partitions[i+1][0]
+                # end the current main partition search, because his value is the wanted one
+                break
+
+            # if with it the current main partition's value is greater than the quarter value
+            elif curr_val + curr_part_value > quarter_val:
+                # set the next starting index to be this partition
+                start_index = i
+                # find the place that gives the current main partition the exact value we want
+                start_place = slicer.mark(partition[0], quarter_val-curr_val)
+                # add this partition (ends at where we want him) to the main one
+                curr_slice.append((partition[0], start_place))
+
+                # end the current main partition search, because his value is the wanted one
+                break
+
+            else:
+                # add this partition to the main one
+                curr_slice.append(partition)
+                # add this partition's value to the main's value
+                curr_val += curr_part_value
+
+        # add the main partition to the list of main partitions
+        final_slicing.append(curr_slice)
+
+    # return the 4 main partitions
+    return final_slicing
+
+
+print(slice_to_4([(0, 4)], t))
+print(slice_to_4([(0, 2)], t))
 
 
 def favorite_piece(pieces: List[Tuple[float, float]], agent: Agent) -> Tuple[float, float]:
@@ -66,10 +163,11 @@ def favorite_piece(pieces: List[Tuple[float, float]], agent: Agent) -> Tuple[flo
     return pieces[int(argmax([agent.eval(*piece) for piece in pieces]))]
 
 
-def core(all_agents: List[Agent], cutter: Agent, residue: Tuple, excluded: List[Agent]) -> Allocation:
+def core(all_agents: List[Agent], cutter: Agent, residue: List[Tuple[float, float]],
+         excluded: List[Agent]) -> Tuple[Allocation, Tuple[float, float]]:
     allocation = Allocation(all_agents)
     # agent k (the cutter) cuts the current residue R (the residue) in for equal valued pieces (according to her)
-    new_allocation = slice_to_4(residue[0], residue[1], cutter)
+    new_allocation = slice_to_4(residue, cutter)
     slices = [(new_allocation[i], new_allocation[i + 1]) for i in range(len(new_allocation) - 1)]
 
     # let S (competitors) = N/({k}∪E) be the set of agents who may compete for pieces
@@ -129,13 +227,22 @@ def correction(agent: Agent):
 
 
 def main_protocol(agents: List[Agent]):
+    # normalize the agents
+    agents = [NormalAgent(agent) for agent in agents]
+
     # the whole cake
-    cake = (0, max([agent.cake_length() for agent in agents]))
+    cake = [(0, 1)]
 
     # --- Phase One
+    allocations = []
+
+    residue = cake
+
     # for count = 1 to 4 do
-    # run CORE on the current residue with agent 1 as the cutter
-    allocations = [core(agents, agents[0], cake, []) for _ in range(4)]
+    for _ in range(4):
+        # run CORE on the current residue with agent 1 as the cutter
+        allocation, residue = core(agents, agents[0], residue, [])
+        allocations.append(allocation)
 
     # TODO: if the same agent got the insignificant piece in all 4 executions of CORE
     if True:
