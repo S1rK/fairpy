@@ -24,13 +24,13 @@ def slice_to_4_continuous(start: float, end: float, slicer: Agent) -> List[Tuple
     :return: a list of 4 equals slices in the eye of the cutter
 
     >>> a = PiecewiseConstantAgent([1, 1, 1, 1])
-    >>> s = slice_to_4_continuous(0, 4, a)
+    >>> s = slice_to_4_continuous(0, 1, a)
     >>> s
-    [(0.0, 1.0), (1.0, 2.0), (2.0, 3.0), (3.0, 4.0)]
+    [(0.0, 0.125), (0.125, 0.25), (0.25, 0.725), (0.725, 1.0)]
     >>> len(s)
     4
-    >>> slice_to_4_continuous(0, 2, a)
-    [(0.0, 0.5), (0.5, 1.0), (1.0, 1.5), (1.5, 2.0)]
+    >>> slice_to_4_continuous(0, 0.5, a)
+    [(0.0, 0.25), (0.25, 0.5), (0.0, 0.25), (0.25, 0.5)]
     """
     # make sure they are floats
     start = float(start)

@@ -11,34 +11,10 @@ class NormalAgent(Agent):
     >>> # Eval tests
     >>> a.eval(0.25, 0.75)
     0.5
-    >>> a.eval(0.375, 0.75)
-    0.4
-    >>> a.eval(0.25, 0.8125)
-    0.6
-    >>> a.eval(0.375, 0.8125)
-    0.5
-    >>> a.eval(1.0, 1.0)
-    0.0
-    >>> a.eval(0.75, 1.75)
-    0.4
-    >>> a.eval(-0.25, 1.75)
-    1.0
 
     >>> # Mark test
     >>> a.mark(0.25, 0.5)
     0.75
-    >>> a.mark(0.375, 0.4)
-    0.75
-    >>> a.mark(0.25, 0.6)
-    0.8125
-    >>> a.mark(0.375, 0.5)
-    0.8125
-    >>> a.mark(0.25, 0.9)
-    1.0
-    >>> a.mark(0.25, 0.91)
-    >>> a.mark(0.25, 0)
-    0.25
-
     """
 
     def __init__(self, agent: Agent):
@@ -72,6 +48,20 @@ class NormalAgent(Agent):
         :param start: Location on cake where the calculation starts.
         :param end:   Location on cake where the calculation ends.
         :return: Value of [start,end], adjusted to the be a normalized value.
+
+        >>> a = NormalAgent(PiecewiseConstantAgent([11, 22, 33, 44]))
+        >>> a.eval(0.375, 0.75)
+        0.4
+        >>> a.eval(0.25, 0.8125)
+        0.6
+        >>> a.eval(0.375, 0.8125)
+        0.5
+        >>> a.eval(1.0, 1.0)
+        0.0
+        >>> a.eval(0.75, 1.75)
+        0.4
+        >>> a.eval(-0.25, 1.75)
+        1.0
         """
         # Make sure start and end are in [0, 1]
         start = min(1.0, max(0.0, start))
@@ -92,6 +82,19 @@ class NormalAgent(Agent):
         :param start: Location on cake where the calculation starts.
         :param targetValue: required value for the piece [start,end]
         :return: the end of an interval with a value of targetValue, adjusted to the be a normalized value.
+
+        >>> a = NormalAgent(PiecewiseConstantAgent([11, 22, 33, 44]))
+        >>> a.mark(0.375, 0.4)
+        0.75
+        >>> a.mark(0.25, 0.6)
+        0.8125
+        >>> a.mark(0.375, 0.5)
+        0.8125
+        >>> a.mark(0.25, 0.9)
+        1.0
+        >>> a.mark(0.25, 0.91)
+        >>> a.mark(0.25, 0)
+        0.25
         """
         # Make sure start and targetValue are in [0, 1]
         start = min(1.0, max(0.0, start))
