@@ -1,6 +1,6 @@
-from agents import Agent
-from allocations import Allocation
-from typing import List
+from agents import *
+from allocations import *
+from typing import *
 from cut_and_choose import asymmetric_protocol
 
 
@@ -106,5 +106,5 @@ def core(all_agents: List[Agent], cutter: Agent, residue: Allocation, excluded: 
 	raise NotImplementedError("shit")
 
 
-def correction(agent:Agent):
+def correction(agent: Agent):
 	raise NotImplementedError("shit")
